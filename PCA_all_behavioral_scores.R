@@ -84,12 +84,38 @@ corrplot(res.pca.loadings, method = 'number',
          number.cex = 0.75,
          mar=c(0,0,1,0))
 
-# interpretation of loadings
-rotation <- "oblimin"
-res.pca.withRotation <- pca(r = domain_patients_data, 
+# interpretation of loadings: Try a rotation of principal components ?
+# in the psych packages, computed scores are standardized
+rotation <- "none"
+res.pca.withRotation <- principal(r = domain_patients_data, 
                             nfactors = ncomp, 
                             scores = TRUE, 
                             rotate = rotation)
-res.pca.withRotation.loading <- res.pca.withRotation$loadings
+if (rotation == "none") {
+  rotation_colnames <- c(paste0("PC", 1:ncomp))
+  
+}
+if (rotation == "varimax") {
+  rotation_colnames <- c(paste0("RC", 1:ncomp))
+  
+}
+if (rotation == "oblimin") {
+  rotation_colnames <- c(paste0("TC", 1:ncomp))  
+}
 
+# Loadings matrix
+res.pca.withRotation.loading <- res.pca.withRotation$loadings[, rotation_colnames]
+
+# plot the loading matrix
+
+# Reshape the data before plotting loading 
+# as heatmap with ggplot
+melted_loading <- melt(res.pca.withRotation.loading)
+
+# Plot the loading as heatmap matrix with ggplot
+ggplot(melted_loading, aes(Var1, Var2)) +
+  geom_tile(aes(fill = value)) + 
+  geom_text(aes(label = round(value, 1))) +
+  scale_color_continuous(get_palette(palette = "RdBu", k = 200)) + 
+  coord_flip()
 
