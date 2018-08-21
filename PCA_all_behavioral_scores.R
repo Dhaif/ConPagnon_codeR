@@ -12,9 +12,14 @@ library(randomcoloR)
 library(sparsepca)
 library(dplyr)
 library(reshape2)
+library(GPArotation)
 
 wd = "/media/db242421/db242421_data/ConPagnon_data/regression_data"
 setwd(wd)
+
+# Save results
+save_results_directory <- "/media/db242421/db242421_data/ConPagnon_reports/resultsPCA/language"
+dir.create(path = save_results_directory, showWarnings = TRUE)
 
 sheet <- "ACM_resting_state_cohort"
 data <- read_excel(path = 'regression_data.xlsx', sheet = sheet)
@@ -65,28 +70,31 @@ scree(rx = domain_patients_data,
 ncomp <- 5
 
 # Perform PCA
-res.pca <- PCA(X = domain_patients_data, scale.unit = TRUE, 
-               graph = FALSE, ncp = ncomp)
+#res.pca <- PCA(X = domain_patients_data, scale.unit = TRUE, 
+#               graph = FALSE, ncp = ncomp)
 
 # Show percentage of variance explained
-res.pca.eig <- res.pca$eig
-barplot(res.pca.eig[, "percentage of variance"])
+#res.pca.eig <- res.pca$eig
+#barplot(res.pca.eig[, "percentage of variance"])
 
 # Correlation between variable and principal components: loadings
-res.pca.loadings <- res.pca$var$coord
+#res.pca.loadings <- res.pca$var$coord
 
-dev.new()
-corrplot(res.pca.loadings, method = 'number', 
-         title = paste('Correlation between principal components and variables for ', 
-               domain, sep = " "), 
-         tl.cex = 1, col = col3(100), 
-         tl.col = 'black', 
-         number.cex = 0.75,
-         mar=c(0,0,1,0))
+#dev.new()
+#corrplot(res.pca.loadings, method = 'number', 
+#         title = paste('Correlation between principal components and variables for ', 
+#               domain, sep = " "), 
+#         tl.cex = 1, col = col3(100), 
+#         tl.col = 'black', 
+#         number.cex = 0.75,
+#         mar=c(0,0,1,0))
 
-# interpretation of loadings: Try a rotation of principal components ?
+# interpretation of loadings: Try a rotation of principal components if desired
 # in the psych packages, computed scores are standardized
-rotation <- "none"
+rotation <- "oblimin"
+
+# Perform PCA with psych package
+# Note: The scores are standardized
 res.pca.withRotation <- principal(r = domain_patients_data, 
                             nfactors = ncomp, 
                             scores = TRUE, 
@@ -113,9 +121,44 @@ res.pca.withRotation.loading <- res.pca.withRotation$loadings[, rotation_colname
 melted_loading <- melt(res.pca.withRotation.loading)
 
 # Plot the loading as heatmap matrix with ggplot
+dev.new()
 ggplot(melted_loading, aes(Var1, Var2)) +
   geom_tile(aes(fill = value)) + 
   geom_text(aes(label = round(value, 1))) +
-  scale_color_continuous(get_palette(palette = "RdBu", k = 200)) + 
-  coord_flip()
+  scale_fill_distiller(palette ="RdBu", direction = -1) +
+  theme_gray(base_size = 10) +
+  coord_flip() +
+  ylab("Principal Components") + 
+  xlab("Variables") + 
+  ggtitle(label = paste("Loadings of variables on principal components for", domain, sep = " "),
+          subtitle = paste("Rotation:", rotation)) +
+  theme(axis.ticks = element_blank(),
+        panel.background = element_blank(),
+        axis.title = element_text(face = "bold", colour = "grey50"),
+        axis.text.x = element_text(size = 10, face = "bold", colour = "black"),
+        axis.text.y = element_text(size = 8, face = "bold", colour = "black"),
+        plot.title = element_text(size = 12, colour = "grey50", face = "bold")) 
+  
+# Get Correlation between scores: depending
+# rotation used, scores can be correlated if the
+# rotatation was not orthogonal.
+scores.correlation <- res.pca.withRotation$r.scores
+write.file.csv(x = scores.correlation, f = file.path(save_results_directory, 
+                                                     paste(rotation, "_correlations_scores.csv", sep = "")),
+               row.names = TRUE)
+
+# Save the scores: the projection of individuals
+# in the principal components space (scores are standardized)
+individuals.coord <- res.pca.withRotation$scores
+write.file.csv(x = individuals.coord, f = file.path(save_results_directory, 
+                                                     paste(rotation, "_individuals_coordinates.csv", sep = "")),
+               row.names = TRUE)
+
+# Save the loadings: the correlation
+# between raw variables and principal components.
+write.file.csv(x = res.pca.withRotation.loading, f = file.path(save_results_directory, 
+                                                    paste(rotation, "_loadings.csv", sep = "")),
+               row.names = TRUE)
+
+
 
