@@ -184,12 +184,32 @@ write.file.csv(x = res.pca.withRotation.loading, f = file.path(save_results_dire
 # clinical variables for plotting purposes.
 
 clinical_variables <- c("Sexe", "Lesion", "langage_clinique") 
-plotting_dataframe <- merge(individuals.coord, patients_data[, clinical_variables], by = "row.names", all = TRUE)
+plotting_dataframe <- merge(individuals.coord, patients_data[, clinical_variables], by = 0, all = TRUE)
 # Drop rows containing missing values
 plotting_dataframe <- plotting_dataframe[complete.cases(plotting_dataframe), ]
+# Make the automaticly created Row.names the rownames of the dataframe
 
 
-
+# Draw the plot
+ggplot(data = plotting_dataframe) + 
+  geom_point(mapping = aes(x = PC1, 
+                           y = PC2,
+                           color = langage_clinique), size =3) +
+  geom_vline(xintercept = 0, linetype ='dashed') +
+  geom_hline(yintercept = 0, linetype = 'dashed') +
+  geom_text_repel(mapping = aes(x = PC1, 
+                                y = PC2,
+                                label = rownames(plotting_dataframe)),
+                  size = 4,
+                  fontface = 'bold',
+                  box.padding = 0.5
+  ) +
+  xlab('PC1') + 
+  ylab('PC2')+
+  ggtitle("Ind. Coord", subtitle = paste(' ')) + 
+  theme_classic() + 
+  theme(plot.title = element_text(size=15), legend.position="bottom", legend.text = element_text(size=10)) + 
+  guides(colour = guide_legend(override.aes = list(size=7)))
 
 
 
