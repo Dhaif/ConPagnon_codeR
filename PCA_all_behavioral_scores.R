@@ -18,7 +18,7 @@ wd = "/media/db242421/db242421_data/ConPagnon_data/regression_data"
 setwd(wd)
 
 # Domain of interest
-domain <- "Alouette"
+domain <- "Language (NEEL)"
 
 # Save results
 save_results_directory <- paste("/media/db242421/db242421_data/ConPagnon_reports/resultsPCA/", domain, sep = "")
@@ -26,7 +26,7 @@ dir.create(path = save_results_directory, showWarnings = TRUE)
 
 sheet <- "ACM_resting_state_cohort"
 data <- read_excel(path = 'regression_data.xlsx', sheet = sheet)
-patients_data <- data[(data$Groupe == 'P'), ]
+patients_data <- as.data.frame(data[(data$Groupe == 'P'), ])
 rownames(patients_data) <- patients_data$X__1
 patients_data$X__1 <- NULL
 patients_data <- as.data.frame(patients_data)
@@ -45,9 +45,8 @@ wisc_tests <- c("wisc_sim", "wisc_voca",  "wisc_comp", "wisc_irp",
                 "wisc_memo", "wisc_seq",  "wisc_arith", "wisc_ivt", 
                 "wisc_code", "wisc_sym")
 
-motor <- c("bbt_left_hand", "bbt_right_hand", "t9c_drmpc_g", 
-           "t9c_drrc_g", "t9c_drtt_g", "t9c_drmpc_d", 
-           "t9c_drrc_d", "t9c_drtt_d")
+motor <- c("bbt_left_hand", "bbt_right_hand", "t9c_drtt_g", 
+           "t9c_drtt_d", "EHI")
 
 lexical_decoding <- c("alou_tl", "alou_m", "alou_e", "alou_c",
                       "alou_cm", "alou_ctl")
@@ -56,9 +55,14 @@ excutive_functions <- c("rey_copie", "rey_dessin")
 
 
 # Subsetting the dataframe to the clinical domain of interest 
-domain_patients_data <-patients_data[, lexical_decoding, drop = FALSE]
+domain_patients_data <-patients_data[, language_neel, drop = FALSE]
 # Drop rows containing missing values
 domain_patients_data <- domain_patients_data[complete.cases(domain_patients_data), ]
+# Make sure dataframe contain numeric values only
+domain_patients_data_ <- sapply(domain_patients_data, as.numeric)
+rownames(domain_patients_data_) <- rownames(domain_patients_data)
+domain_patients_data <- domain_patients_data_
+
 
 
 # Screeplot to choose number of components
@@ -66,10 +70,6 @@ dev.new()
 scree(rx = domain_patients_data, 
       main = 'eigenvalues - principal component plot', 
       factors = FALSE)
-
-
-# Number of components to keep based on Kaiser Rule: eigenvalues superior to 1.
-ncomp <- 2
 
 # Correlation between scores
 cormat <- cor(domain_patients_data)
@@ -82,6 +82,10 @@ corrplot(cormat, method = 'color',
          addgrid.col = 'black', tl.col = 'black', tl.cex = 0.75,
          mar=c(0,0,1,0))
 
+# Number of components to keep based on Kaiser Rule: eigenvalues superior to 1, at least
+# 70 % of variance explained
+ncomp <- 3
+
 # Perform PCA
 res.pca <- PCA(X = domain_patients_data, scale.unit = TRUE,
               graph = FALSE, ncp = ncomp)
@@ -89,9 +93,17 @@ res.pca <- PCA(X = domain_patients_data, scale.unit = TRUE,
 res.pca.scores <- res.pca$ind$coord
 res.pca.scores.std <- scale(res.pca.scores, scale = TRUE, center = TRUE)
 
+
 # Show percentage of variance explained
-#res.pca.eig <- res.pca$eig
-#barplot(res.pca.eig[, "percentage of variance"])
+dev.new()
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 80),
+         xlab = "Principal Components", ylab = "Percentage of variance explained",
+         main = "Variance explained (%) by each principal components",
+         barfill = "orange", barcolor = "black")
+
+
+
+
 
 # Correlation between variable and principal components: loadings
 #res.pca.loadings <- res.pca$var$coord
@@ -140,7 +152,7 @@ melted_loading <- melt(res.pca.withRotation.loading)
 dev.new()
 ggplot(melted_loading, aes(Var1, Var2)) +
   geom_tile(aes(fill = value)) + 
-  geom_text(aes(label = round(value, 1))) +
+  geom_text(aes(label = round(value, 3))) +
   scale_fill_distiller(palette ="RdBu", direction = -1) +
   theme_gray(base_size = 10) +
   coord_flip() +
@@ -183,23 +195,30 @@ write.file.csv(x = res.pca.withRotation.loading, f = file.path(save_results_dire
 # Create a dataframe with the principal components
 # clinical variables for plotting purposes.
 
-clinical_variables <- c("Sexe", "Lesion", "langage_clinique") 
+clinical_variables <- c("Sexe", "Lesion", "langage_clinique", "cerebral_palsy", "Parole") 
 plotting_dataframe <- merge(individuals.coord, patients_data[, clinical_variables], by = 0, all = TRUE)
 # Drop rows containing missing values
-plotting_dataframe <- plotting_dataframe[complete.cases(plotting_dataframe), ]
-# Make the automaticly created Row.names the rownames of the dataframe
+plotting_dataframe <- as.data.frame(plotting_dataframe[complete.cases(plotting_dataframe), ])
+# Make the newly created Row.names the rownames of the dataframe
+rownames(plotting_dataframe) <- plotting_dataframe$Row.names
+plotting_dataframe$Row.names <- NULL
+
+
+
 
 
 # Draw the plot
+dev.new()
 ggplot(data = plotting_dataframe) + 
   geom_point(mapping = aes(x = PC1, 
                            y = PC2,
-                           color = langage_clinique), size =3) +
+                           color = Parole), size =3) +
   geom_vline(xintercept = 0, linetype ='dashed') +
   geom_hline(yintercept = 0, linetype = 'dashed') +
   geom_text_repel(mapping = aes(x = PC1, 
                                 y = PC2,
-                                label = rownames(plotting_dataframe)),
+                                label = rownames(plotting_dataframe),
+                                color = Parole),
                   size = 4,
                   fontface = 'bold',
                   box.padding = 0.5
