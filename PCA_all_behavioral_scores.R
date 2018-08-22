@@ -13,12 +13,14 @@ library(sparsepca)
 library(dplyr)
 library(reshape2)
 library(GPArotation)
+library(paran)
+
 
 wd = "/media/db242421/db242421_data/ConPagnon_data/regression_data"
 setwd(wd)
 
 # Domain of interest
-domain <- "Language (NEEL)"
+domain <- "WISC"
 
 # Save results
 save_results_directory <- paste("/media/db242421/db242421_data/ConPagnon_reports/resultsPCA/", domain, sep = "")
@@ -55,7 +57,7 @@ excutive_functions <- c("rey_copie", "rey_dessin")
 
 
 # Subsetting the dataframe to the clinical domain of interest 
-domain_patients_data <-patients_data[, language_neel, drop = FALSE]
+domain_patients_data <-patients_data[, wisc_tests, drop = FALSE]
 # Drop rows containing missing values
 domain_patients_data <- domain_patients_data[complete.cases(domain_patients_data), ]
 # Make sure dataframe contain numeric values only
@@ -93,7 +95,6 @@ res.pca <- PCA(X = domain_patients_data, scale.unit = TRUE,
 res.pca.scores <- res.pca$ind$coord
 res.pca.scores.std <- scale(res.pca.scores, scale = TRUE, center = TRUE)
 
-
 # Show percentage of variance explained
 dev.new()
 fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 80),
@@ -101,7 +102,11 @@ fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 80),
          main = "Variance explained (%) by each principal components",
          barfill = "orange", barcolor = "black")
 
-
+# Parallel Analysis
+paran(domain_patients_data, iterations = 5000, centile = 0, quietly = FALSE, 
+      status = TRUE, all = TRUE, cfa = TRUE, graph = TRUE, color = TRUE, 
+      col = c("black", "red", "blue"), lty = c(1, 2, 3), lwd = 1, legend = TRUE, 
+      file = "", width = 640, height = 640, grdevice = "png", seed = 0)
 
 
 
