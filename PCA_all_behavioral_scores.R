@@ -68,23 +68,28 @@ domain_patients_data <- domain_patients_data_
 # Correlation between scores
 cormat <- cor(domain_patients_data)
 col3 <- colorRampPalette(c("blue", "white", "red"))
-dev.new()
+
+#dev.new()
+pdf(file = file.path(save_results_directory, paste("correlation_matrix_", domain, ".pdf", sep = "")))
 corrplot(cormat, method = 'color',
          title = paste('Correlation matrix between behavioral tests for ', 
                        domain, sep = " "),
          number.cex = 0.5, col = col3(100), 
          addgrid.col = 'black', tl.col = 'black', tl.cex = 0.75,
          mar=c(0,0,1,0))
+dev.off()
 
 # Choose the number of components: scree plot method,
 # percentage of variance explained, Parralel Analysis, 
 # Broken Stick model.
 
 # Screeplot to choose number of components
-dev.new()
+#dev.new()
+pdf(file = file.path(save_results_directory, paste("scree_plot_", domain, ".pdf", sep = "")))
 scree(rx = domain_patients_data, 
       main = 'eigenvalues - principal component plot', 
       factors = FALSE)
+dev.off()
 
 # Number of components to keep based on Kaiser Rule: eigenvalues superior to 1, at least
 # 70 % of variance explained
@@ -97,19 +102,31 @@ res.pca <- PCA(X = domain_patients_data, scale.unit = TRUE,
 res.pca.scores <- res.pca$ind$coord
 res.pca.scores.std <- scale(res.pca.scores, scale = TRUE, center = TRUE)
 
+# Save eigenvalues (no rotation) and percentage of 
+# variances explained 
+res.pca.eig <- res.pca$eig
+write.file.csv(x = res.pca.eig, 
+               f = file.path(save_results_directory, "no_rotation_eig.csv"),
+               row.names = TRUE)
+
 # Show percentage of variance explained
-dev.new()
+#dev.new()
+pdf(file = file.path(save_results_directory, paste("barplot_eigenvalues_", domain, ".pdf", sep = "")))
 fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 80),
          xlab = "Principal Components", ylab = "Percentage of variance explained",
          main = "Variance explained (%) by each principal components",
          barfill = "orange", barcolor = "black")
+dev.off()
+
 
 # Parallel Analysis
-dev.new()
+#dev.new()
+pdf(file = file.path(save_results_directory, paste("paralel_analysis_", domain, ".pdf", sep = "")))
 parralel_analysis <- paran(domain_patients_data, iterations = 5000, centile = 0, quietly = FALSE, 
       status = TRUE, all = TRUE, cfa = TRUE, graph = TRUE, color = TRUE, 
       col = c("black", "red", "blue"), lty = c(1, 2, 3), lwd = 1, legend = TRUE, 
       file = "", width = 640, height = 640, grdevice = "png", seed = 0)
+dev.off()
 
 # Broken Stick model
 # Quelles sont les valeurs propres plus grandes que la moyenne?
@@ -129,7 +146,8 @@ for (i in 2:n) {
 bsm$p = 100*bsm$p/n
 
 # Dessiner les valeurs propres et le % de variance de chaque axe
-dev.new()
+#dev.new()
+pdf(file = file.path(save_results_directory, paste("broken_stick_model_", domain, ".pdf", sep = "")))
 par(mfrow=c(2,1))
 barplot(ev, main="Eigenvalues", col="bisque", las=2)
 abline(h=mean(ev), col="red")	# mean of eigenvalues
@@ -138,8 +156,7 @@ barplot(t(cbind(100*ev/sum(ev),bsm$p[n:1])), beside=T,
         main="% variance", col=c("bisque",2), las=2)
 legend("topright", c("% of variance explained", "Broken stick model"), 
        pch=15, col=c("bisque",2), bty="n")
-
-testFA <- fac(r = domain_patients_data, nfactors = 3, rotate = "oblimin")
+dev.off()
 
 # Correlation between variable and principal components: loadings
 #res.pca.loadings <- res.pca$var$coord
@@ -185,7 +202,8 @@ res.pca.withRotation.loading <- res.pca.withRotation$loadings[, rotation_colname
 melted_loading <- melt(res.pca.withRotation.loading)
 
 # Plot the loading as heatmap matrix with ggplot
-dev.new()
+#dev.new()
+pdf(file = file.path(save_results_directory, paste("loadings_heatmap_", domain, ".pdf", sep = "")))
 ggplot(melted_loading, aes(Var1, Var2)) +
   geom_tile(aes(fill = value)) + 
   geom_text(aes(label = round(value, 3))) +
@@ -202,9 +220,10 @@ ggplot(melted_loading, aes(Var1, Var2)) +
         axis.text.x = element_text(size = 10, face = "bold", colour = "black"),
         axis.text.y = element_text(size = 8, face = "bold", colour = "black"),
         plot.title = element_text(size = 12, colour = "grey50", face = "bold")) 
+dev.off()
 
 # Asses the significance of the Loadings
-# Compute the Peres-Neto metho.
+# Compute the Peres-Neto methods.
 # See: "Giving meaningul interpretation to ordination axes: Assesing
 # loading significance in principal components analysis", 2003,
 # Ecology.
@@ -250,7 +269,8 @@ significant_loading <- res.pca.withRotation.loading * significant_loading_boolea
 melted_significant_loading <- melt(significant_loading)
 
 # Plot the loading as heatmap matrix with ggplot
-dev.new()
+#dev.new()
+pdf(file = file.path(save_results_directory, paste("significant_loadings_", domain, ".pdf", sep = "")))
 ggplot(melted_significant_loading, aes(Var1, Var2)) +
   geom_tile(aes(fill = value)) + 
   geom_text(aes(label = round(value, 3))) +
@@ -267,7 +287,7 @@ ggplot(melted_significant_loading, aes(Var1, Var2)) +
         axis.text.x = element_text(size = 10, face = "bold", colour = "black"),
         axis.text.y = element_text(size = 8, face = "bold", colour = "black"),
         plot.title = element_text(size = 12, colour = "grey50", face = "bold")) 
-
+dev.off()
 
 
 # Write significant loadings for easier interpretation
@@ -283,20 +303,19 @@ write.file.csv(x = significant_loading_boolean,
 
 # If rotation is none save the raw scores
 # Else: save standardized output of psych packages
-if (rotation == "none") {
-  scores.correlation <- res.pca$ind$coord
-  
-}else {
-  scores.correlation <- scores.correlation <- res.pca.withRotation$r.scores
-}
-
+scores.correlation <- res.pca.withRotation$r.scores
 write.file.csv(x = scores.correlation, f = file.path(save_results_directory, 
                                                      paste(rotation, "_correlations_scores.csv", sep = "")),
                row.names = TRUE)
 
 # Save the scores: the projection of individuals
 # in the principal components space (scores are standardized)
-individuals.coord <- res.pca.withRotation$scores
+if (rotation == "none") {
+  individuals.coord <- res.pca$ind$coord
+  
+}else{
+  individuals.coord <- res.pca.withRotation$scores
+}
 write.file.csv(x = individuals.coord, f = file.path(save_results_directory, 
                                                      paste(rotation, "_individuals_coordinates.csv", sep = "")),
                row.names = TRUE)
@@ -313,7 +332,8 @@ write.file.csv(x = res.pca.withRotation.loading, f = file.path(save_results_dire
 
 # Create a dataframe with the principal components
 # clinical variables for plotting purposes.
-clinical_variables <- c("Sexe", "Lesion", "langage_clinique", "cerebral_palsy", "Parole") 
+clinical_variables <- c("Sexe", "Lesion", "langage_clinique", "cerebral_palsy", "Parole",
+                        "Lexique_comp", "Lexique_exp") 
 plotting_dataframe <- merge(individuals.coord, patients_data[, clinical_variables], by = 0, all = TRUE)
 # Drop rows containing missing values
 plotting_dataframe <- as.data.frame(plotting_dataframe[complete.cases(plotting_dataframe), ])
@@ -321,29 +341,113 @@ plotting_dataframe <- as.data.frame(plotting_dataframe[complete.cases(plotting_d
 rownames(plotting_dataframe) <- plotting_dataframe$Row.names
 plotting_dataframe$Row.names <- NULL
 
+# Build composite factor variable for plotting purpose
+
+# Language (NEEL): Composite factor with Speech and Language profil (Establised by L. Drutel).
+plotting_dataframe$langage_clinique <- factor(plotting_dataframe$langage_clinique)
+plotting_dataframe$Parole <- factor(plotting_dataframe$Parole)
+plotting_dataframe$speech_language_profile <- factor(as.numeric(with(plotting_dataframe, 
+                                                                     interaction(langage_clinique, 
+                                                                                 Parole)))-1)
+
+plotting_dataframe$lexical_comprehension_speech <- factor(as.numeric(with(plotting_dataframe, 
+                                                                          interaction(Lexique_comp, 
+                                                                                      Parole)))-1)
+
+
+plotting_dataframe$lexical_expression_speech <- factor(as.numeric(with(plotting_dataframe, 
+                                                                          interaction(Lexique_exp, 
+                                                                                      Parole)))-1)
+
+plotting_dataframe$lexical_comprehension_expression_speech <- factor(as.numeric(with(plotting_dataframe, 
+                                                                                     interaction(Lexique_exp, 
+                                                                                                 Parole,
+                                                                                                 Lexique_comp)))-1)
+# Speech and Language
+# groups <- mapvalues(plotting_dataframe$speech_language_profile, from = c("0","2","3"), 
+#                     to = c("Impaired Language and Impaired Speech",
+#                            "Impaired language and Non Impaired Speech",
+#                            "Non Impaired language and Non Impaired Speech"))
+
+
+# Speech and lexical comprehension
+# groups <- mapvalues(plotting_dataframe$speech_language_profile, from = c("0","1","2","3"),
+#                     to = c("Impaired lexical comprehension and Impaired Speech",
+#                            "Non Impaired lexical comprehension and Impaired Speech",
+#                            "Impaired lexical comprehension and Non Impaired Speech",
+#                            "Non Impaired lexical comprehension and Non Impaired Speech"))
+
+
+# Speech and lexical expression
+# groups <- mapvalues(plotting_dataframe$lexical_expression_speech, from = c("0","1","2","3"),
+#                     to = c("Impaired lexical expression and Impaired Speech",
+#                            "Non Impaired lexical expression and Impaired Speech",
+#                            "Impaired lexical expression and Non Impaired Speech",
+#                            "Non Impaired lexical expression and Non Impaired Speech"))
+
+
+# Speech and lexical expression and comprehension
+groups <- mapvalues(plotting_dataframe$lexical_comprehension_expression_speech, from = c("0","1","2","3", "4", "6", "7"),
+                    to = c("Impaired lexical exp/comp and Impaired Speech",
+                           "Impaired lexical comp and Speech and Non Impaired lexical exp",
+                           "Non Impaired Speech and Impaired lexical exp/comp",
+                           "Non Impaired Speech and lexical exp and Impaired lexical comp",
+                           "Impaired Speech and lexical exp and Non Impaired lexical comp",
+                           "Non Impairesd Speech and lexical comp and Impaired lexical exp",
+                           "Non Impaired Speech, lexical comp/exp"
+                           ))
+
+
+
+groups <- as.factor(groups)
+
+# Figures parameters
+dim_on_x <- 2
+dim_on_y <- 3
+points_labels <- rownames(plotting_dataframe)
+size_of_points <- 3
+size_of_points_labels <- 4
+legend_title <- "Legend: "
+legend_labels_size <- 10
+
+x_label <- "PC2"
+y_label <- "PC3"
+figure_title <- paste(domain, ": Projection of subjects in the PC2 and PC3 plan", sep = "")
+
+figure_width <- 20
+figure_heigth <- 10
+
 # Draw the plot
-dev.new()
-ggplot(data = plotting_dataframe) + 
-  geom_point(mapping = aes(x = PC1, 
-                           y = PC2,
-                           color = Parole), size =3) +
+#dev.new()
+pdf(file = file.path(save_results_directory, 
+                     paste(domain,"_",x_label,"_",y_label,"scores_lex_exp_comp_speech.pdf")),
+    width = figure_width,
+    height = figure_heigth)
+print(ggplot(data = plotting_dataframe) + 
+  geom_point(mapping = aes(x = plotting_dataframe[, colnames(plotting_dataframe)[dim_on_x]], 
+                           y = plotting_dataframe[, colnames(plotting_dataframe)[dim_on_y]],
+                           color = groups), 
+             size =size_of_points) +
   geom_vline(xintercept = 0, linetype ='dashed') +
   geom_hline(yintercept = 0, linetype = 'dashed') +
-  geom_text_repel(mapping = aes(x = PC1, 
-                                y = PC2,
-                                label = rownames(plotting_dataframe),
-                                color = Parole),
-                  size = 4,
+  geom_text_repel(mapping = aes(x = plotting_dataframe[, colnames(plotting_dataframe)[dim_on_x]], 
+                                y = plotting_dataframe[, colnames(plotting_dataframe)[dim_on_y]],
+                                label = points_labels,
+                                color = groups),
+                  size = size_of_points_labels,
                   fontface = 'bold',
                   box.padding = 0.5
   ) +
-  xlab('PC1') + 
-  ylab('PC2')+
-  ggtitle("Ind. Coord", subtitle = paste(' ')) + 
+  xlab(x_label) + 
+  ylab(y_label)+
+  ggtitle(figure_title, subtitle = paste(' ')) + 
   theme_classic() + 
-  theme(plot.title = element_text(size=15), legend.position="bottom", legend.text = element_text(size=10)) + 
-  guides(colour = guide_legend(override.aes = list(size=7)))
-
+  theme(plot.title = element_text(size=15, face="bold"), 
+        legend.position="bottom", legend.text = element_text(size=legend_labels_size),
+        axis.text.x = element_text(face = "bold"),
+        axis.text.y = element_text(face = "bold")) + 
+  guides(colour = guide_legend(override.aes = list(size=5), title = legend_title)))
+dev.off()
 
 
 
