@@ -20,7 +20,7 @@ wd = "/media/db242421/db242421_data/ConPagnon_data/regression_data"
 setwd(wd)
 
 # Domain of interest
-domain <- "Language (NEEL)"
+domain <- "Executive"
 
 # Save results
 save_results_directory <- paste("/media/db242421/db242421_data/ConPagnon_reports/resultsPCA/", domain, sep = "")
@@ -47,17 +47,17 @@ wisc_tests <- c("wisc_sim", "wisc_voca",  "wisc_comp",
                 "wisc_memo", "wisc_seq", 
                 "wisc_code", "wisc_sym")
 
-motor <- c("bbt_left_hand", "bbt_right_hand", "t9c_drtt_g", 
-           "t9c_drtt_d")
+motor <- c("bbt_left_hand", "bbt_right_hand", "nhpt_left", 
+           "nhpt_right")
 
 lexical_decoding <- c("alou_tl", "alou_m", "alou_e", "alou_c",
                       "alou_cm", "alou_ctl")
 
-excutive_functions <- c("rey_copie", "rey_dessin")
+executive_functions <- c("rey_copie", "rey_dessin")
 
 
 # Subsetting the dataframe to the clinical domain of interest 
-domain_patients_data <-patients_data[, language_neel, drop = FALSE]
+domain_patients_data <-patients_data[, executive_functions, drop = FALSE]
 # Drop rows containing missing values
 domain_patients_data <- domain_patients_data[complete.cases(domain_patients_data), ]
 # Make sure dataframe contain numeric values only
@@ -93,7 +93,7 @@ dev.off()
 
 # Number of components to keep based on Kaiser Rule: eigenvalues superior to 1, at least
 # 70 % of variance explained
-ncomp <- 3
+ncomp <- 1
 
 # Perform PCA
 res.pca <- PCA(X = domain_patients_data, scale.unit = TRUE,
@@ -343,7 +343,7 @@ plotting_dataframe$Row.names <- NULL
 
 # Build composite factor variable for plotting purpose
 
-# Language (NEEL): Composite factor with Speech and Language profil (Establised by L. Drutel).
+
 plotting_dataframe$langage_clinique <- factor(plotting_dataframe$langage_clinique)
 plotting_dataframe$Parole <- factor(plotting_dataframe$Parole)
 plotting_dataframe$speech_language_profile <- factor(as.numeric(with(plotting_dataframe, 
@@ -387,28 +387,35 @@ plotting_dataframe$lexical_comprehension_expression_speech <- factor(as.numeric(
 
 
 # Speech and lexical expression and comprehension
-groups <- mapvalues(plotting_dataframe$lexical_comprehension_expression_speech, from = c("0","1","2","3", "4", "6", "7"),
-                    to = c("Impaired lexical exp/comp and Impaired Speech",
-                           "Impaired lexical comp and Speech and Non Impaired lexical exp",
-                           "Non Impaired Speech and Impaired lexical exp/comp",
-                           "Non Impaired Speech and lexical exp and Impaired lexical comp",
-                           "Impaired Speech and lexical exp and Non Impaired lexical comp",
-                           "Non Impairesd Speech and lexical comp and Impaired lexical exp",
-                           "Non Impaired Speech, lexical comp/exp"
-                           ))
+# groups <- mapvalues(plotting_dataframe$lexical_comprehension_expression_speech, from = c("0","1","2","3", "4", "6", "7"),
+#                     to = c("Impaired lexical exp/comp and Impaired Speech",
+#                            "Impaired lexical comp and Speech and Non Impaired lexical exp",
+#                            "Non Impaired Speech and Impaired lexical exp/comp",
+#                            "Non Impaired Speech and lexical exp and Impaired lexical comp",
+#                            "Impaired Speech and lexical exp and Non Impaired lexical comp",
+#                            "Non Impairesd Speech and lexical comp and Impaired lexical exp",
+#                            "Non Impaired Speech, lexical comp/exp"
+#                            ))
 
 
+groups <- mapvalues(plotting_dataframe$langage_clinique, from = c("A","N"),
+                    to = c("Impaired Language",
+                           "Non Impaired Language"))
+
+
+# groups <- plotting_dataframe$Lesion
 
 groups <- as.factor(groups)
 
 # Figures parameters
-dim_on_x <- 2
-dim_on_y <- 3
+dim_on_x <- 1
+dim_on_y <- 2
 points_labels <- rownames(plotting_dataframe)
 size_of_points <- 3
 size_of_points_labels <- 4
 legend_title <- "Legend: "
 legend_labels_size <- 10
+points_labels_color <- groups
 
 x_label <- "PC2"
 y_label <- "PC3"
@@ -420,7 +427,7 @@ figure_heigth <- 10
 # Draw the plot
 #dev.new()
 pdf(file = file.path(save_results_directory, 
-                     paste(domain,"_",x_label,"_",y_label,"scores_lex_exp_comp_speech.pdf")),
+                     paste(domain,"_",x_label,"_",y_label,"language.pdf")),
     width = figure_width,
     height = figure_heigth)
 print(ggplot(data = plotting_dataframe) + 
@@ -433,7 +440,7 @@ print(ggplot(data = plotting_dataframe) +
   geom_text_repel(mapping = aes(x = plotting_dataframe[, colnames(plotting_dataframe)[dim_on_x]], 
                                 y = plotting_dataframe[, colnames(plotting_dataframe)[dim_on_y]],
                                 label = points_labels,
-                                color = groups),
+                                color = points_labels_color),
                   size = size_of_points_labels,
                   fontface = 'bold',
                   box.padding = 0.5
@@ -449,5 +456,9 @@ print(ggplot(data = plotting_dataframe) +
   guides(colour = guide_legend(override.aes = list(size=5), title = legend_title)))
 dev.off()
 
+# Save plotting dataframe
+write.file.csv(x = plotting_dataframe,
+               file = file.path(save_results_directory, paste(domain,"_pca_results_dataframe.csv", sep = "")),
+               row.names = TRUE)
 
 
