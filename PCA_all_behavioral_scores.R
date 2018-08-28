@@ -20,7 +20,7 @@ wd = "/media/db242421/db242421_data/ConPagnon_data/regression_data"
 setwd(wd)
 
 # Domain of interest
-domain <- "Executive"
+domain <- "All scores"
 
 # Save results
 save_results_directory <- paste("/media/db242421/db242421_data/ConPagnon_reports/resultsPCA/", domain, sep = "")
@@ -50,14 +50,17 @@ wisc_tests <- c("wisc_sim", "wisc_voca",  "wisc_comp",
 motor <- c("bbt_left_hand", "bbt_right_hand", "nhpt_left", 
            "nhpt_right")
 
-lexical_decoding <- c("alou_tl", "alou_m", "alou_e", "alou_c",
+lexical_decoding <- c("alou_m", "alou_e", "alou_c",
                       "alou_cm", "alou_ctl")
 
 executive_functions <- c("rey_copie", "rey_dessin")
 
+all_scores <- c(executive_functions, lexical_decoding, motor,
+                wisc_tests, language_neel)
+
 
 # Subsetting the dataframe to the clinical domain of interest 
-domain_patients_data <-patients_data[, executive_functions, drop = FALSE]
+domain_patients_data <-patients_data[, all_scores, drop = FALSE]
 # Drop rows containing missing values
 domain_patients_data <- domain_patients_data[complete.cases(domain_patients_data), ]
 # Make sure dataframe contain numeric values only
@@ -93,11 +96,13 @@ dev.off()
 
 # Number of components to keep based on Kaiser Rule: eigenvalues superior to 1, at least
 # 70 % of variance explained
-ncomp <- 1
+ncomp <- 5
+
 
 # Perform PCA
 res.pca <- PCA(X = domain_patients_data, scale.unit = TRUE,
               graph = FALSE, ncp = ncomp)
+
 
 res.pca.scores <- res.pca$ind$coord
 res.pca.scores.std <- scale(res.pca.scores, scale = TRUE, center = TRUE)
@@ -364,7 +369,7 @@ plotting_dataframe$lexical_comprehension_expression_speech <- factor(as.numeric(
                                                                                                  Parole,
                                                                                                  Lexique_comp)))-1)
 # Speech and Language
-# groups <- mapvalues(plotting_dataframe$speech_language_profile, from = c("0","2","3"), 
+# groups <- mapvalues(plotting_dataframe$speech_language_profile, from = c("0","2","3"),
 #                     to = c("Impaired Language and Impaired Speech",
 #                            "Impaired language and Non Impaired Speech",
 #                            "Non Impaired language and Non Impaired Speech"))
@@ -398,15 +403,15 @@ plotting_dataframe$lexical_comprehension_expression_speech <- factor(as.numeric(
 #                            ))
 
 
-groups <- mapvalues(plotting_dataframe$langage_clinique, from = c("A","N"),
-                    to = c("Impaired Language",
-                           "Non Impaired Language"))
+# groups <- mapvalues(plotting_dataframe$langage_clinique, from = c("A","N"),
+#                     to = c("Impaired Language",
+#                            "Non Impaired Language"))
 
 
-# groups <- plotting_dataframe$Lesion
-
+groups <- plotting_dataframe$Lesion
 groups <- as.factor(groups)
 
+groups <- as.factor(plotting_dataframe$Lexique_comp)
 # Figures parameters
 dim_on_x <- 1
 dim_on_y <- 2
@@ -417,9 +422,9 @@ legend_title <- "Legend: "
 legend_labels_size <- 10
 points_labels_color <- groups
 
-x_label <- "PC2"
-y_label <- "PC3"
-figure_title <- paste(domain, ": Projection of subjects in the PC2 and PC3 plan", sep = "")
+x_label <- "PC1"
+y_label <- "PC2"
+figure_title <- paste(domain, ": Projection of subjects in the PC1 and PC2 plan", sep = "")
 
 figure_width <- 20
 figure_heigth <- 10
@@ -427,7 +432,7 @@ figure_heigth <- 10
 # Draw the plot
 #dev.new()
 pdf(file = file.path(save_results_directory, 
-                     paste(domain,"_",x_label,"_",y_label,"language.pdf")),
+                     paste(domain,"_",x_label,"_",y_label,"lesion.pdf")),
     width = figure_width,
     height = figure_heigth)
 print(ggplot(data = plotting_dataframe) + 
@@ -460,5 +465,4 @@ dev.off()
 write.file.csv(x = plotting_dataframe,
                file = file.path(save_results_directory, paste(domain,"_pca_results_dataframe.csv", sep = "")),
                row.names = TRUE)
-
 
