@@ -20,7 +20,7 @@ wd = "/media/db242421/db242421_data/ConPagnon_data/regression_data"
 setwd(wd)
 
 # Domain of interest
-domain <- "All scores"
+domain <- "Language Impaired (NEEL)"
 
 # Save results
 save_results_directory <- paste("/media/db242421/db242421_data/ConPagnon_reports/resultsPCA/", domain, sep = "")
@@ -28,7 +28,7 @@ dir.create(path = save_results_directory, showWarnings = TRUE)
 
 sheet <- "ACM_resting_state_cohort"
 data <- read_excel(path = 'regression_data.xlsx', sheet = sheet)
-patients_data <- as.data.frame(data[(data$Groupe == 'P'), ])
+patients_data <- as.data.frame(data[(data$Groupe == 'P') & (data$langage_clinique == "A"), ])
 rownames(patients_data) <- patients_data$X__1
 patients_data$X__1 <- NULL
 patients_data <- as.data.frame(patients_data)
@@ -60,7 +60,7 @@ all_scores <- c(executive_functions, lexical_decoding, motor,
 
 
 # Subsetting the dataframe to the clinical domain of interest 
-domain_patients_data <-patients_data[, all_scores, drop = FALSE]
+domain_patients_data <-patients_data[, language_neel, drop = FALSE]
 # Drop rows containing missing values
 domain_patients_data <- domain_patients_data[complete.cases(domain_patients_data), ]
 # Make sure dataframe contain numeric values only
@@ -96,7 +96,7 @@ dev.off()
 
 # Number of components to keep based on Kaiser Rule: eigenvalues superior to 1, at least
 # 70 % of variance explained
-ncomp <- 5
+ncomp <- 3
 
 
 # Perform PCA
@@ -338,7 +338,7 @@ write.file.csv(x = res.pca.withRotation.loading, f = file.path(save_results_dire
 # Create a dataframe with the principal components
 # clinical variables for plotting purposes.
 clinical_variables <- c("Sexe", "Lesion", "langage_clinique", "cerebral_palsy", "Parole",
-                        "Lexique_comp", "Lexique_exp") 
+                        "Lexique_comp", "Lexique_exp", "Syntaxe_comp") 
 plotting_dataframe <- merge(individuals.coord, patients_data[, clinical_variables], by = 0, all = TRUE)
 # Drop rows containing missing values
 plotting_dataframe <- as.data.frame(plotting_dataframe[complete.cases(plotting_dataframe), ])
@@ -368,12 +368,21 @@ plotting_dataframe$lexical_comprehension_expression_speech <- factor(as.numeric(
                                                                                      interaction(Lexique_exp, 
                                                                                                  Parole,
                                                                                                  Lexique_comp)))-1)
+
+plotting_dataframe$lexical_syntaxe_comprehension_speech <- factor(as.numeric(with(plotting_dataframe, 
+                                                                                  interaction(Syntaxe_comp, 
+                                                                                              Parole,
+                                                                                              Lexique_comp)))-1)
 # Speech and Language
 # groups <- mapvalues(plotting_dataframe$speech_language_profile, from = c("0","2","3"),
 #                     to = c("Impaired Language and Impaired Speech",
 #                            "Impaired language and Non Impaired Speech",
 #                            "Non Impaired language and Non Impaired Speech"))
 
+# Speech and Language for the Imapired Group
+# groups <- mapvalues(plotting_dataframe$speech_language_profile, from = c("0","1"),
+#                     to = c("Impaired Language and Impaired Speech",
+#                            "Impaired language and Non Impaired Speech"))
 
 # Speech and lexical comprehension
 # groups <- mapvalues(plotting_dataframe$speech_language_profile, from = c("0","1","2","3"),
@@ -402,19 +411,43 @@ plotting_dataframe$lexical_comprehension_expression_speech <- factor(as.numeric(
 #                            "Non Impaired Speech, lexical comp/exp"
 #                            ))
 
+# Speech and lexical and syntaxe comprehension for impaired language groups
+# groups <- mapvalues(plotting_dataframe$lexical_syntaxe_comprehension_speech, from = c("0","1","2","3", "5", "6", "7"),
+#                     to = c("Impaired Speech, Syntax comp and Lexical Comp",
+#                            "Impaired Speech, Impaired Lexical Comp and Non Impaired Syntax Comp",
+#                            "Non Impaired Speech, Impaired Lexical Comp, Impaired Syntax Comp",
+#                            "Non Impaired Speech, Impaired Lexical Comp, Non Impaired Syntax Comp",
+#                            "Impaired Specch, Non impaired lexical comp, Non Impaired syntax Comp",
+#                            "Non Impaired Speech, Non impaired lexical comp, impaired syntax comp",
+#                            "Non Impaired Speech, Syntax comp, Lexical Comp"
+#                            ))
+
+# Speech and lexical expression and comprehension for impaired groups
+groups <- mapvalues(plotting_dataframe$lexical_comprehension_expression_speech, from = c("0","1","2","3", "4", "6", "7"),
+                    to = c("Impaired lexical exp/comp and Impaired Speech",
+                           "Impaired lexical comp and Speech and Non Impaired lexical exp",
+                           "Non Impaired Speech and Impaired lexical exp/comp",
+                           "Non Impaired Speech and lexical exp and Impaired lexical comp",
+                           "Impaired Speech and lexical exp and Non Impaired lexical comp",
+                           "Non Impairesd Speech and lexical comp and Impaired lexical exp",
+                           "Non Impaired Speech, lexical comp/exp"
+                           ))
+
 
 # groups <- mapvalues(plotting_dataframe$langage_clinique, from = c("A","N"),
 #                     to = c("Impaired Language",
 #                            "Non Impaired Language"))
 
+# 
+# groups <- plotting_dataframe$Lesion
+# groups <- as.factor(groups)
 
-groups <- plotting_dataframe$Lesion
-groups <- as.factor(groups)
+#groups <- as.factor(plotting_dataframe$Lexique_comp)
 
-groups <- as.factor(plotting_dataframe$Lexique_comp)
+
 # Figures parameters
-dim_on_x <- 1
-dim_on_y <- 2
+dim_on_x <- 2
+dim_on_y <- 3
 points_labels <- rownames(plotting_dataframe)
 size_of_points <- 3
 size_of_points_labels <- 4
@@ -422,9 +455,9 @@ legend_title <- "Legend: "
 legend_labels_size <- 10
 points_labels_color <- groups
 
-x_label <- "PC1"
-y_label <- "PC2"
-figure_title <- paste(domain, ": Projection of subjects in the PC1 and PC2 plan", sep = "")
+x_label <- "PC2"
+y_label <- "PC3"
+figure_title <- paste(domain, ": Projection of subjects in the PC2 and PC3 plan", sep = "")
 
 figure_width <- 20
 figure_heigth <- 10
@@ -432,7 +465,7 @@ figure_heigth <- 10
 # Draw the plot
 #dev.new()
 pdf(file = file.path(save_results_directory, 
-                     paste(domain,"_",x_label,"_",y_label,"lesion.pdf")),
+                     paste(domain,"_",x_label,"_",y_label,"_speech_lexical_comp_exp.pdf")),
     width = figure_width,
     height = figure_heigth)
 print(ggplot(data = plotting_dataframe) + 
