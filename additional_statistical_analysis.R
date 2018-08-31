@@ -1,4 +1,6 @@
 library(googlesheets)
+library(corrplot)
+library(psych)
 
 # Statistical analysis of principal components, raw scores
 root_data_directory <- "/media/db242421/db242421_data/ConPagnon_data"
@@ -9,13 +11,21 @@ dir.create(save_results_directory, showWarnings = TRUE)
 
 # Load behavioral dataframe.
 data_gs_title <- gs_title("Resting State AVCnn: cohort data")
-data <- gs_read(ss = data_gs_title, ws="Middle Cerebral Artery resting state cohort")
+data <- as.data.frame(gs_read(ss = data_gs_title, ws="Middle Cerebral Artery resting state cohort"))
+rownames(data) <- data$X1
+data$X1 <- NULL
 
+# Clean data: replace comma by point
+# TODO: why this behavior ??
+
+for(i in 1:ncol(x = data)){
+  data[, i] <- gsub(",", ".", data[ , i])
+}
+# Check everything is ok.
+head(data)
 
 #data <- as.data.frame(read_excel(file.path(root_data_directory,"regression_data/regression_data.xlsx")))
 patients_data <- as.data.frame(data[(data$Groupe == 'P'), ])
-rownames(patients_data) <- patients_data$X1
-patients_data$X1 <- NULL
 patients_data <- as.data.frame(patients_data)
 
 # Raw variable, and principal components results per
@@ -40,7 +50,7 @@ pca_wisc <- c("pc1_wisc", "pc2_wisc", "pc3_wisc")
 motor <- c("bbt_left_hand", "bbt_right_hand", "nhpt_left", 
            "nhpt_right")
 
-pca_motor <- c("motor_pc1", "motor_pc2", "motor_pc3")
+pca_motor <- c("motor_pc1", "motor_pc2")
 
 lexical_decoding <- c("alou_m", "alou_e", "alou_c",
                       "alou_cm", "alou_ctl")
@@ -60,13 +70,17 @@ all_pca <- c(pca_wisc, pca_motor, pca_language_neel, pca_executive, pca_lexical_
 
 # Raw variables: link with normalized lesion volume
 # Per domain ?
-domain <- language_neel
-domain_name <- "Language"
+domain <- pca_lexical_decoding
+domain_name <- "PCA lexical decoding"
 
 # Subsetting the dataframe to the clinical domain of interest
 domain_patients_data <-patients_data[, domain, drop = FALSE]
 # Drop rows containing missing values
 domain_patients_data <- domain_patients_data[complete.cases(domain_patients_data), ]
+
+# Use subset if only one variable
+#domain_patients_data <- subset(domain_patients_data, !is.na(domain_patients_data$pc1_lexical_decoding))
+
 # Make sure dataframe contain numeric values only
 domain_patients_data_ <- sapply(domain_patients_data, as.numeric)
 rownames(domain_patients_data_) <- rownames(domain_patients_data)
@@ -77,9 +91,14 @@ domain_patients_data_w_lesion <-merge(domain_patients_data , patients_data[varia
 rownames(domain_patients_data_w_lesion) <- domain_patients_data_w_lesion$Row.names
 domain_patients_data_w_lesion$Row.names <- NULL
 
-# Clean dataframe, column containing ","
-domain_patients_data_w_lesion <- sapply(domain_patients_data_w_lesion[variable], as.numeric)
+# Convert "character" column into numeric
+domain_patients_data_w_lesion[, variable] <- sapply(domain_patients_data_w_lesion[,variable], as.numeric)
+
+#domain_patients_data_w_lesion[, "pc1_lexical_decoding"] <- sapply(domain_patients_data_w_lesion[,c("pc1_lexical_decoding")], as.numeric)
+#domain_patients_data_w_lesion[, "pc1_lexical_decoding"] <- sapply(domain_patients_data[,"pc1_lexical_decoding"], as.numeric)
+
 sapply(domain_patients_data_w_lesion, class)
+
 # Correlation with lesion volume
 correlation_w_lesion <- cor(domain_patients_data_w_lesion)
 # Correlation without lesion volume
@@ -97,6 +116,15 @@ corrplot(correlation_wo_lesion, method = 'color',
          mar=c(0,0,1,0))
 dev.off()
 
+pdf(file = file.path(save_results_directory, paste("correlation_matrix_", domain_name, "_with_lesion.pdf", sep = "")))
+corrplot(correlation_w_lesion, method = 'color',
+         title = paste('Correlation matrix between behavioral tests for ', 
+                       domain_name, sep = " "),
+         number.cex = 0.5, col = col3(100), 
+         addgrid.col = 'black', tl.col = 'black', tl.cex = 0.75,
+         mar=c(0,0,1,0))
+dev.off()
+
 # Compute correlation matrix between raw behavioral scores regressing out 
 # lesion volume effect
 correlation_w_lesion_volume_regressed <- partial.r(data = domain_patients_data_w_lesion, 
@@ -104,19 +132,32 @@ correlation_w_lesion_volume_regressed <- partial.r(data = domain_patients_data_w
                                                    y = variable)
 
 pdf(file = file.path(save_results_directory, 
-                     paste("correlation_matrix_", domain_name, "_with_lesion_regressed.pdf", sep = "")),
-    height = 25,
-    width = 20)
+                     paste("correlation_matrix_", domain_name, "_with_lesion_regressed.pdf", sep = "")))
 corrplot(correlation_w_lesion_volume_regressed, method = 'color',
-         title = paste('Correlation matrix between behavioral tests for ', 
-                       domain_name, "\n with lesion volume regressed out",sep = " "),
+         
          number.cex = 0.5, col = col3(100), 
-         addgrid.col = 'black', tl.col = 'black', tl.cex = 0.75,
+         addgrid.col = 'black', tl.col = 'black', tl.cex = 0.65,
          mar=c(0,0,1,0))
+title(main = paste('Correlation matrix between behavioral tests for ', 
+                   domain_name, "\n with lesion volume regressed out",sep = " "))
 dev.off()
 
 # Compute difference with and without volume regression
 correlation_difference <- correlation_wo_lesion - correlation_w_lesion_volume_regressed
+
+pdf(file = file.path(save_results_directory, 
+                     paste("correlation_matrix_", domain_name, "_diff_w_and_wo_lesion_regressed.pdf", sep = "")))
+corrplot(correlation_difference, method = 'color',
+         addCoef.col = "black",
+         type = "upper",
+         number.cex = 0.5, col = col3(100), 
+         addgrid.col = 'black', tl.col = 'black', tl.cex = 0.5,
+         tl.srt = 45,
+         mar=c(0,0,1,0))
+title(main = paste('Correlation difference matrix between behavioral tests for ', 
+                   domain_name, "\n without regression of lesion volume - with lesion regressed out.",sep = " "))
+dev.off()
+
 
 
 
