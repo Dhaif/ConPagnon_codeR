@@ -6,7 +6,10 @@ R data reduction and visualisation
 R routines performing a principal components
 analysis (PCA) on behavioral data, and regression
 analysis with the outputed principal components.
-Those routines also useful visualization functions
+To help you with the components interpretation,
+some rotation method are also an option, alongside
+clutering tecnics.
+Those routines contains also useful visualization functions
 for correlation matrix plot, regression results plot,
 principal components projections plot.
 
@@ -52,16 +55,17 @@ Scripts
 * PCA_multiples_technics: this script perform a Principal Components Analysis,
   using the classical SVD decomposition, and, depending if the interpretation
   of the components are easy, you can rotate them using the psych packages.
+  Rotating the principal components can sometimes help, but depending of 
+  the rotation methods, resulting components can no longer be orthogonal.
+* cluster_on_pca: This simple R function, takes a `PCA object` from the 
+  FactoMineR package, and with a k-means clustering, segment into k 
+  categories the projected data points. It can help to interpret the
+  principal components meaning, along with your clinical data.
+* plot_linear_model_pcs: Fit a linear model between the outputed
+  Principal Components, and behavioral data. It's a very common
+  technics, to perform a linear regression on the newly created variable
+  as long as you can explain them ;)
 
-
-
-The only script to execute is the `pipeline_launcher.sh` scripts. 
-In this scripts, you will have to changes the data access path, 
-to your image database, lobar atlas, and anatomical atlas. You'll
-have to change the path to the `scripts` folder too.
-The results will be created in a **Roblob** folder inside each
-subject folder with all the sub-folder corresponding to each
-step of the pipelines. I encourage you to check each step.
 
 Contributors
 ============
