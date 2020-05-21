@@ -50,7 +50,8 @@ Scripts
 =======
 
 * PCA_multiples_technics: this script perform a Principal Components Analysis,
-using the classical SVD decomposition
+  using the classical SVD decomposition, and, depending if the interpretation
+  of the components are easy, you can rotate them using the psych packages.
 
 
 
