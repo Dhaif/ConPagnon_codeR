@@ -28,9 +28,13 @@ Software
 
 You will need to have on your machine the following software:
 
-* R, at least the 3.6 version.
+* R, at least the 3.6 version
+
+R libraies
+~~~~~~~~~~
 
 In R, the following libraries are mandatory:
+
 * factoextra, 
 * FactoMineR,
 * readxl,
@@ -44,6 +48,9 @@ In R, the following libraries are mandatory:
 
 Scripts
 =======
+
+* PCA_multiples_technics: this script perform a Principal Components Analysis,
+using the classical SVD decomposition
 
 
 
